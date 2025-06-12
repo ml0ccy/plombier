@@ -454,9 +454,16 @@ flyButton.MouseButton1Click:Connect(function()
 end)
 
 -- Функция AirJump
+
 airJumpButton.MouseButton1Click:Connect(function()
     airJumpEnabled = not airJumpEnabled
     airJumpButton.Text = "AirJump (J): " .. (airJumpEnabled and "Вкл" or "Выкл")
+end)
+
+UserInputService.JumpRequest:Connect(function()
+    if airJumpEnabled and humanoid then
+        humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+    end
 end)
 
 -- Функция спиннера
