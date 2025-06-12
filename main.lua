@@ -3,6 +3,7 @@ local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local StarterGui = game:GetService("StarterGui")
+local TweenService = game:GetService("TweenService")
 
 -- Получаем локального игрока
 local player = Players.LocalPlayer
@@ -14,7 +15,9 @@ local humanoid = character and character:FindFirstChild("Humanoid")
 local noClipEnabled = false
 local flyEnabled = false
 local airJumpEnabled = false
+local spinnerEnabled = false
 local flySpeed = 50
+local spinnerSpeed = 50
 local isInvisible = false
 local guiVisible = true
 
@@ -24,15 +27,15 @@ gui.Name = "CheatMenu"
 gui.Parent = player:WaitForChild("PlayerGui")
 gui.ResetOnSpawn = false
 
--- Размытый фон (имитация стекла)
+-- Размытый фон
 local blur = Instance.new("BlurEffect")
 blur.Size = 10
 blur.Parent = game:GetService("Lighting")
 
--- Основной фрейм (прямоугольник в стеклянном стиле)
+-- Основной фрейм
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 350, 0, 450)
-frame.Position = UDim2.new(0.5, -175, 0.5, -225)
+frame.Size = UDim2.new(0, 350, 0, 480)
+frame.Position = UDim2.new(0.5, -175, 0.5, -240)
 frame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 frame.BackgroundTransparency = 0.7
 frame.BorderSizePixel = 0
@@ -59,7 +62,7 @@ title.Font = Enum.Font.GothamBold
 title.TextStrokeTransparency = 0.8
 title.Parent = frame
 
--- Координаты (компактные, в левом верхнем углу)
+-- Координаты
 local coordsLabel = Instance.new("TextLabel")
 coordsLabel.Size = UDim2.new(0, 120, 0, 15)
 coordsLabel.Position = UDim2.new(0, 10, 0, 45)
@@ -105,10 +108,35 @@ local speedCorner = Instance.new("UICorner")
 speedCorner.CornerRadius = UDim.new(0, 5)
 speedCorner.Parent = speedInput
 
+-- Поле для скорости спиннера
+local spinnerSpeedLabel = Instance.new("TextLabel")
+spinnerSpeedLabel.Size = UDim2.new(0, 100, 0, 25)
+spinnerSpeedLabel.Position = UDim2.new(0, 10, 0, 100)
+spinnerSpeedLabel.BackgroundTransparency = 1
+spinnerSpeedLabel.Text = "Скорость спин:"
+spinnerSpeedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+spinnerSpeedLabel.TextSize = 14
+spinnerSpeedLabel.Font = Enum.Font.SourceSans
+spinnerSpeedLabel.Parent = frame
+
+local spinnerSpeedInput = Instance.new("TextBox")
+spinnerSpeedInput.Size = UDim2.new(0, 100, 0, 25)
+spinnerSpeedInput.Position = UDim2.new(0, 120, 0, 100)
+spinnerSpeedInput.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+spinnerSpeedInput.BackgroundTransparency = 0.8
+spinnerSpeedInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+spinnerSpeedInput.Text = "50"
+spinnerSpeedInput.TextSize = 14
+spinnerSpeedInput.Font = Enum.Font.SourceSans
+spinnerSpeedInput.Parent = frame
+local spinnerSpeedCorner = Instance.new("UICorner")
+spinnerSpeedCorner.CornerRadius = UDim.new(0, 5)
+spinnerSpeedCorner.Parent = spinnerSpeedInput
+
 -- Поля для координат
 local xLabel = Instance.new("TextLabel")
 xLabel.Size = UDim2.new(0, 30, 0, 25)
-xLabel.Position = UDim2.new(0, 10, 0, 110)
+xLabel.Position = UDim2.new(0, 10, 0, 140)
 xLabel.BackgroundTransparency = 1
 xLabel.Text = "X:"
 xLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -118,7 +146,7 @@ xLabel.Parent = frame
 
 local xInput = Instance.new("TextBox")
 xInput.Size = UDim2.new(0, 70, 0, 25)
-xInput.Position = UDim2.new(0, 40, 0, 110)
+xInput.Position = UDim2.new(0, 40, 0, 140)
 xInput.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 xInput.BackgroundTransparency = 0.8
 xInput.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -132,7 +160,7 @@ xCorner.Parent = xInput
 
 local yLabel = Instance.new("TextLabel")
 yLabel.Size = UDim2.new(0, 30, 0, 25)
-yLabel.Position = UDim2.new(0, 120, 0, 110)
+yLabel.Position = UDim2.new(0, 120, 0, 140)
 yLabel.BackgroundTransparency = 1
 yLabel.Text = "Y:"
 yLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -142,7 +170,7 @@ yLabel.Parent = frame
 
 local yInput = Instance.new("TextBox")
 yInput.Size = UDim2.new(0, 70, 0, 25)
-yInput.Position = UDim2.new(0, 150, 0, 110)
+yInput.Position = UDim2.new(0, 150, 0, 140)
 yInput.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 yInput.BackgroundTransparency = 0.8
 yInput.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -156,7 +184,7 @@ yCorner.Parent = yInput
 
 local zLabel = Instance.new("TextLabel")
 zLabel.Size = UDim2.new(0, 30, 0, 25)
-zLabel.Position = UDim2.new(0, 230, 0, 110)
+zLabel.Position = UDim2.new(0, 230, 0, 140)
 zLabel.BackgroundTransparency = 1
 zLabel.Text = "Z:"
 zLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -166,7 +194,7 @@ zLabel.Parent = frame
 
 local zInput = Instance.new("TextBox")
 zInput.Size = UDim2.new(0, 70, 0, 25)
-zInput.Position = UDim2.new(0, 260, 0, 110)
+zInput.Position = UDim2.new(0, 260, 0, 140)
 zInput.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 zInput.BackgroundTransparency = 0.8
 zInput.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -181,7 +209,7 @@ zCorner.Parent = zInput
 -- Кнопка телепорта
 local teleportButton = Instance.new("TextButton")
 teleportButton.Size = UDim2.new(0, 100, 0, 30)
-teleportButton.Position = UDim2.new(0, 125, 0, 150)
+teleportButton.Position = UDim2.new(0, 125, 0, 180)
 teleportButton.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
 teleportButton.BackgroundTransparency = 0.3
 teleportButton.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -196,7 +224,7 @@ teleportCorner.Parent = teleportButton
 -- Кнопка невидимости
 local invisibleButton = Instance.new("TextButton")
 invisibleButton.Size = UDim2.new(0, 100, 0, 30)
-invisibleButton.Position = UDim2.new(0, 125, 0, 190)
+invisibleButton.Position = UDim2.new(0, 125, 0, 220)
 invisibleButton.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
 invisibleButton.BackgroundTransparency = 0.3
 invisibleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -208,10 +236,10 @@ local invisibleCorner = Instance.new("UICorner")
 invisibleCorner.CornerRadius = UDim.new(0, 5)
 invisibleCorner.Parent = invisibleButton
 
--- Кнопки для NoClip, Fly, AirJump
+-- Кнопки для NoClip, Fly, AirJump, Spinner
 local noClipButton = Instance.new("TextButton")
-noClipButton.Size = UDim2.new(0, 100, 0, 30)
-noClipButton.Position = UDim2.new(0, 10, 0, 230)
+noClipButton.Size = UDim2.new(0, 80, 0, 30)
+noClipButton.Position = UDim2.new(0, 10, 0, 260)
 noClipButton.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
 noClipButton.BackgroundTransparency = 0.3
 noClipButton.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -224,8 +252,8 @@ noClipCorner.CornerRadius = UDim.new(0, 5)
 noClipCorner.Parent = noClipButton
 
 local flyButton = Instance.new("TextButton")
-flyButton.Size = UDim2.new(0, 100, 0, 30)
-flyButton.Position = UDim2.new(0, 125, 0, 230)
+flyButton.Size = UDim2.new(0, 80, 0, 30)
+flyButton.Position = UDim2.new(0, 95, 0, 260)
 flyButton.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
 flyButton.BackgroundTransparency = 0.3
 flyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -238,8 +266,8 @@ flyCorner.CornerRadius = UDim.new(0, 5)
 flyCorner.Parent = flyButton
 
 local airJumpButton = Instance.new("TextButton")
-airJumpButton.Size = UDim2.new(0, 100, 0, 30)
-airJumpButton.Position = UDim2.new(0, 240, 0, 230)
+airJumpButton.Size = UDim2.new(0, 80, 0, 30)
+airJumpButton.Position = UDim2.new(0, 180, 0, 260)
 airJumpButton.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
 airJumpButton.BackgroundTransparency = 0.3
 airJumpButton.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -251,10 +279,24 @@ local airJumpCorner = Instance.new("UICorner")
 airJumpCorner.CornerRadius = UDim.new(0, 5)
 airJumpCorner.Parent = airJumpButton
 
+local spinnerButton = Instance.new("TextButton")
+spinnerButton.Size = UDim2.new(0, 80, 0, 30)
+spinnerButton.Position = UDim2.new(0, 265, 0, 260)
+spinnerButton.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
+spinnerButton.BackgroundTransparency = 0.3
+spinnerButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+spinnerButton.Text = "Spinner (P)"
+spinnerButton.TextSize = 14
+spinnerButton.Font = Enum.Font.Gotham
+spinnerButton.Parent = frame
+local spinnerCorner = Instance.new("UICorner")
+spinnerCorner.CornerRadius = UDim.new(0, 5)
+spinnerCorner.Parent = spinnerButton
+
 -- Выпадающий список игроков
 local playerList = Instance.new("ScrollingFrame")
 playerList.Size = UDim2.new(0, 330, 0, 150)
-playerList.Position = UDim2.new(0, 10, 0, 280)
+playerList.Position = UDim2.new(0, 10, 0, 310)
 playerList.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 playerList.BackgroundTransparency = 0.8
 playerList.ScrollBarThickness = 5
@@ -305,6 +347,14 @@ speedInput.FocusLost:Connect(function()
         if speed then
             humanoid.WalkSpeed = speed
         end
+    end
+end)
+
+-- Функция изменения скорости спиннера
+spinnerSpeedInput.FocusLost:Connect(function()
+    local speed = tonumber(spinnerSpeedInput.Text)
+    if speed then
+        spinnerSpeed = math.clamp(speed, 0, 500)
     end
 end)
 
@@ -409,13 +459,211 @@ airJumpButton.MouseButton1Click:Connect(function()
     airJumpButton.Text = "AirJump (J): " .. (airJumpEnabled and "Вкл" or "Выкл")
 end)
 
-UserInputService.JumpRequest:Connect(function()
-    if airJumpEnabled and humanoid then
-        humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+-- Функция спиннера
+local spinnerConnection
+local initialHRPPosition -- Начальная позиция HumanoidRootPart при активации
+local rotationAxis = Vector3.new(0, 0, 1) -- Ось, на которую смотрит "вентилятор" (стена, например, по Z)
+local rotationDirection = -1 -- -1 для вращения по часовой стрелке, 1 для против часовой
+local currentRotationAngle = 0 -- Текущий угол вращения вокруг этой оси
+
+spinnerButton.MouseButton1Click:Connect(function()
+    spinnerEnabled = not spinnerEnabled
+    spinnerButton.Text = "Spinner (P): " .. (spinnerEnabled and "Вкл" or "Выкл")
+
+    if spinnerEnabled then
+        -- Отключаем другие физические эффекты
+        if flyEnabled then
+            flyButton:Activate()
+        end
+        if noClipEnabled then
+            noClipButton:Activate()
+        end
+
+        -- Убедимся, что character и humanoidRootPart существуют
+        if not character or not humanoidRootPart or not humanoid then
+            warn("Character, HumanoidRootPart or Humanoid not found for Spinner function.")
+            spinnerEnabled = false
+            spinnerButton.Text = "Spinner (P): Выкл"
+            return
+        end
+
+        -- Сохраняем начальную позицию HRP (точка "взлёта")
+        initialHRPPosition = humanoidRootPart.Position + Vector3.new(0, 5, 0) -- Немного поднимаем
+        currentRotationAngle = 0 -- Сбрасываем угол
+
+        -- Проверка и удаление существующих BodyGyro и BodyVelocity/BodyPosition
+        local existingGyro = humanoidRootPart:FindFirstChildOfClass("BodyGyro")
+        if existingGyro then
+            existingGyro:Destroy()
+        end
+        local existingVelocity = humanoidRootPart:FindFirstChildOfClass("BodyVelocity")
+        if existingVelocity then
+            existingVelocity:Destroy()
+        end
+        local existingPosition = humanoidRootPart:FindFirstChildOfClass("BodyPosition")
+        if existingPosition then
+            existingPosition:Destroy()
+        end
+
+        -- Создаем BodyGyro для контроля ориентации
+        local bodyGyro = Instance.new("BodyGyro")
+        bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+        bodyGyro.P = 10000 
+        bodyGyro.Parent = humanoidRootPart
+        humanoid.PlatformStand = true -- Замораживаем персонажа
+
+        -- Создаем BodyPosition для удержания на месте
+        local bodyPosition = Instance.new("BodyPosition")
+        bodyPosition.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        bodyPosition.Position = initialHRPPosition
+        bodyPosition.Parent = humanoidRootPart
+
+        -- Отключаем старое соединение, если оно есть
+        if spinnerConnection then
+            spinnerConnection:Disconnect()
+            spinnerConnection = nil
+        end
+
+        -- Вращение как лопасть вентилятора, смотрящего на стену (с сохранением центра HRP)
+        spinnerConnection = RunService.RenderStepped:Connect(function(delta)
+            if spinnerEnabled and humanoidRootPart and humanoid then
+                currentRotationAngle = currentRotationAngle + spinnerSpeed * delta * rotationDirection
+                
+                -- ---- КЛЮЧЕВОЕ ИЗМЕНЕНИЕ ЗДЕСЬ ----
+                -- 1. Определяем базовую ориентацию: лицо на стену, бок к полу.
+                --    Если "стена" - это +Z, то лицо смотрит по +Z.
+                local fixedLookVector = rotationAxis -- Лицо смотрит на стену (например, +Z)
+                local fixedRightVector = Vector3.new(0, -1, 0) -- Правый бок смотрит вниз (к полу)
+                local fixedUpVector = fixedLookVector:Cross(fixedRightVector) -- Голова вверх/вниз по кругу
+                
+                -- CFrame для этой базовой ориентации (без вращения)
+                local baseOrientationCFrame = CFrame.fromMatrix(Vector3.new(0,0,0), fixedRightVector, fixedUpVector, -fixedLookVector)
+                
+                -- 2. Создаем вращение вокруг оси "стены" (например, Z-оси)
+                --    Это будет вращение всего вентилятора.
+                local rotationCFrame = CFrame.fromAxisAngle(rotationAxis, math.rad(currentRotationAngle))
+                
+                -- 3. Комбинируем: сначала базовая ориентация, затем вращение.
+                --    Используем CFrame.new(initialHRPPosition) для установки позиции.
+                local finalCFrame = CFrame.new(initialHRPPosition) * rotationCFrame * baseOrientationCFrame
+                
+                -- CFrame.new(initialHRPPosition) - позиция HRP
+                -- rotationCFrame - вращение всего вентилятора вокруг своей оси (Z)
+                -- baseOrientationCFrame - ориентация отдельной лопасти (игрока) относительно вентилятора.
+                
+                -- Проверим порядок умножения для правильного эффекта:
+                -- Мы хотим, чтобы HumanoidRootPart был в initialHRPPosition.
+                -- Затем к этой точке применяется общее вращение "вентилятора".
+                -- И уже внутри этого вращения, персонаж имеет свою "лопастную" ориентацию.
+                
+                -- Правильный порядок:
+                -- CFrame.new(initialHRPPosition) -- Задаем позицию
+                -- * CFrame.fromAxisAngle(rotationAxis, math.rad(currentRotationAngle)) -- Вращаем "вентилятор" целиком
+                -- * baseOrientationCFrame -- Применяем ориентацию "лопасти" относительно вентилятора.
+                --   Это то, что я думал, но это заставит персонажа вращаться вокруг собственной оси.
+                
+                -- Если "голова застывает в центре", а тело вращается вокруг неё:
+                -- Это означает, что HRP не в центре вращения.
+                -- HRP движется по кругу вокруг Head.
+                -- Если Head.Position = P, а HRP.Position = P + offset.
+                -- Head - P, HRP - P + offset.
+                -- offset - это вектор от головы до HRP.
+                -- Нужно вращать этот offset.
+                
+                -- Возвращаемся к идее, что HRP - это центр вращения.
+                -- И персонаж просто вращается вокруг HRP, сохраняя свою необычную ориентацию.
+                -- При этом он НЕ вращается вокруг своей оси, а именно вращается в плоскости.
+                
+                -- Новая попытка с CFrame.fromMatrix:
+                -- Goal:
+                -- 1. Position: initialHRPPosition (stays fixed)
+                -- 2. LookVector (face): points towards rotationAxis (e.g., +Z for wall)
+                -- 3. RightVector (right side): points dynamically UP/DOWN as it rotates in the XY plane
+                -- 4. UpVector (top of head): points dynamically LEFT/RIGHT as it rotates in the XY plane
+
+                -- LookVector (куда смотрит лицо) - фиксирован на ось "стены" (например, +Z)
+                local fixedLookVector = rotationAxis 
+                
+                -- Вычисляем RightVector и UpVector, которые вращаются в плоскости XY
+                -- Угол currentRotationAngle определяет положение лопасти на круге.
+                -- X-компонента RightVector, Y-компонента UpVector.
+                local rightX = math.cos(math.rad(currentRotationAngle + 90)) -- Сдвиг на 90, чтобы он был "боком"
+                local rightY = math.sin(math.rad(currentRotationAngle + 90))
+                local rightVector = Vector3.new(rightX, rightY, 0).Unit * rotationDirection -- правый бок "вниз" по кругу
+                
+                local upX = math.cos(math.rad(currentRotationAngle))
+                local upY = math.sin(math.rad(currentRotationAngle))
+                local upVector = Vector3.new(upX, upY, 0).Unit * rotationDirection -- голова "вверх" по кругу
+                
+                -- Если rightVector направлен от центра, а upVector - по касательной,
+                -- то lookVector будет перпендикулярен им обоим.
+                -- Но нам нужен фиксированный lookVector.
+                
+                -- Использование CFrame.Angles для вращения вокруг фиксированной оси:
+                -- CFrame.new(initialHRPPosition) * CFrame.Angles(0, 0, math.rad(currentRotationAngle)) * CFrame.Angles(0, math.rad(90), 0)
+                -- 1. Переместить HRP в центр.
+                -- 2. Повернуть вокруг Z-оси (чтобы голова была вверх/вниз).
+                -- 3. Повернуть вокруг Y-оси (чтобы лицо смотрело на стену).
+                
+                -- Вращение вентилятора вокруг своей оси Z (если смотрит по Z)
+                local fanRotation = CFrame.Angles(0, 0, math.rad(currentRotationAngle * rotationDirection))
+                
+                -- Начальная ориентация "лопасти": лицо смотрит на стену (+Z), бок к полу (-Y)
+                -- Для этого: повернуть вокруг X на 90 градусов (чтобы лечь на спину), 
+                -- затем повернуть вокруг Y на 90 градусов (чтобы лицо смотрело на стену).
+                -- Это CFrame.Angles(math.rad(-90), 0, 0) * CFrame.Angles(0, math.rad(90), 0)
+                
+                -- Комбинируем:
+                -- 1. Позиция (фиксирована)
+                -- 2. Общее вращение вентилятора
+                -- 3. Локальная ориентация лопасти (чтобы лечь на бок и смотреть на стену)
+                
+                -- CFrame.Angles(roll, pitch, yaw)
+                -- Roll (X): -90 (чтобы лечь на спину)
+                -- Yaw (Y): 90 (чтобы повернуться лицом вбок, т.е. на стену)
+                -- Pitch (Z): 0
+                local bladeTiltAndDirection = CFrame.Angles(math.rad(-90), math.rad(90), 0) 
+                
+                local finalCFrame = CFrame.new(initialHRPPosition) * fanRotation * bladeTiltAndDirection
+                
+                bodyGyro.CFrame = finalCFrame
+                bodyPosition.Position = initialHRPPosition -- Удерживаем HRP в фиксированной точке
+
+            else
+                -- Если спиннер отключен, разрываем соединение
+                if spinnerConnection then
+                    spinnerConnection:Disconnect()
+                    spinnerConnection = nil
+                end
+            end
+        end)
+    else
+        -- Отключаем спиннер
+        if spinnerConnection then
+            spinnerConnection:Disconnect()
+            spinnerConnection = nil
+        end
+        if humanoidRootPart then
+            local existingGyro = humanoidRootPart:FindFirstChildOfClass("BodyGyro")
+            if existingGyro then
+                existingGyro:Destroy()
+            end
+            local existingVelocity = humanoidRootPart:FindFirstChildOfClass("BodyVelocity")
+            if existingVelocity then
+                existingVelocity:Destroy()
+            end
+            local existingPosition = humanoidRootPart:FindFirstChildOfClass("BodyPosition")
+            if existingPosition then
+                existingPosition:Destroy()
+            end
+        end
+        if humanoid then
+            humanoid.PlatformStand = false -- Размораживаем персонажа
+        end
     end
 end)
 
--- Управление видимостью GUI (клавиша K)
+-- Управление видимостью GUI и активацией функций
 UserInputService.InputBegan:Connect(function(input, isProcessed)
     if not isProcessed then
         if input.KeyCode == Enum.KeyCode.K then
@@ -428,6 +676,8 @@ UserInputService.InputBegan:Connect(function(input, isProcessed)
             flyButton:Activate()
         elseif input.KeyCode == Enum.KeyCode.J then
             airJumpButton:Activate()
+        elseif input.KeyCode == Enum.KeyCode.P then
+            spinnerButton:Activate()
         end
     end
 end)
@@ -445,9 +695,30 @@ player.CharacterAdded:Connect(function(newCharacter)
         end
         humanoid.WalkSpeed = 0
     end
+    if spinnerEnabled then
+        spinnerButton:Activate()
+        spinnerButton:Activate()
+    end
 end)
 
--- Удаление размытия при уничтожении GUI
+-- Удаление размытия и очистка спиннера при уничтожении GUI
 gui.AncestryChanged:Connect(function()
     blur:Destroy()
+    if spinnerConnection then
+        spinnerConnection:Disconnect()
+        spinnerConnection = nil
+    end
+    if humanoidRootPart then
+        local existingGyro = humanoidRootPart:FindFirstChildOfClass("BodyGyro")
+        if existingGyro then
+            existingGyro:Destroy()
+        end
+        local existingVelocity = humanoidRootPart:FindFirstChildOfClass("BodyVelocity")
+        if existingVelocity then
+            existingVelocity:Destroy()
+        end
+    end
+    if humanoid then
+        humanoid.PlatformStand = false
+    end
 end)
