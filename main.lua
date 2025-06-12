@@ -454,7 +454,6 @@ flyButton.MouseButton1Click:Connect(function()
 end)
 
 -- Функция AirJump
-
 airJumpButton.MouseButton1Click:Connect(function()
     airJumpEnabled = not airJumpEnabled
     airJumpButton.Text = "AirJump (J): " .. (airJumpEnabled and "Вкл" or "Выкл")
@@ -536,64 +535,18 @@ spinnerButton.MouseButton1Click:Connect(function()
             if spinnerEnabled and humanoidRootPart and humanoid then
                 currentRotationAngle = currentRotationAngle + spinnerSpeed * delta * rotationDirection
                 
-                -- ---- КЛЮЧЕВОЕ ИЗМЕНЕНИЕ ЗДЕСЬ ----
-                -- 1. Определяем базовую ориентацию: лицо на стену, бок к полу.
-                --    Если "стена" - это +Z, то лицо смотрит по +Z.
                 local fixedLookVector = rotationAxis -- Лицо смотрит на стену (например, +Z)
                 local fixedRightVector = Vector3.new(0, -1, 0) -- Правый бок смотрит вниз (к полу)
                 local fixedUpVector = fixedLookVector:Cross(fixedRightVector) -- Голова вверх/вниз по кругу
                 
-                -- CFrame для этой базовой ориентации (без вращения)
                 local baseOrientationCFrame = CFrame.fromMatrix(Vector3.new(0,0,0), fixedRightVector, fixedUpVector, -fixedLookVector)
                 
-                -- 2. Создаем вращение вокруг оси "стены" (например, Z-оси)
-                --    Это будет вращение всего вентилятора.
                 local rotationCFrame = CFrame.fromAxisAngle(rotationAxis, math.rad(currentRotationAngle))
                 
-                -- 3. Комбинируем: сначала базовая ориентация, затем вращение.
-                --    Используем CFrame.new(initialHRPPosition) для установки позиции.
                 local finalCFrame = CFrame.new(initialHRPPosition) * rotationCFrame * baseOrientationCFrame
                 
-                -- CFrame.new(initialHRPPosition) - позиция HRP
-                -- rotationCFrame - вращение всего вентилятора вокруг своей оси (Z)
-                -- baseOrientationCFrame - ориентация отдельной лопасти (игрока) относительно вентилятора.
-                
-                -- Проверим порядок умножения для правильного эффекта:
-                -- Мы хотим, чтобы HumanoidRootPart был в initialHRPPosition.
-                -- Затем к этой точке применяется общее вращение "вентилятора".
-                -- И уже внутри этого вращения, персонаж имеет свою "лопастную" ориентацию.
-                
-                -- Правильный порядок:
-                -- CFrame.new(initialHRPPosition) -- Задаем позицию
-                -- * CFrame.fromAxisAngle(rotationAxis, math.rad(currentRotationAngle)) -- Вращаем "вентилятор" целиком
-                -- * baseOrientationCFrame -- Применяем ориентацию "лопасти" относительно вентилятора.
-                --   Это то, что я думал, но это заставит персонажа вращаться вокруг собственной оси.
-                
-                -- Если "голова застывает в центре", а тело вращается вокруг неё:
-                -- Это означает, что HRP не в центре вращения.
-                -- HRP движется по кругу вокруг Head.
-                -- Если Head.Position = P, а HRP.Position = P + offset.
-                -- Head - P, HRP - P + offset.
-                -- offset - это вектор от головы до HRP.
-                -- Нужно вращать этот offset.
-                
-                -- Возвращаемся к идее, что HRP - это центр вращения.
-                -- И персонаж просто вращается вокруг HRP, сохраняя свою необычную ориентацию.
-                -- При этом он НЕ вращается вокруг своей оси, а именно вращается в плоскости.
-                
-                -- Новая попытка с CFrame.fromMatrix:
-                -- Goal:
-                -- 1. Position: initialHRPPosition (stays fixed)
-                -- 2. LookVector (face): points towards rotationAxis (e.g., +Z for wall)
-                -- 3. RightVector (right side): points dynamically UP/DOWN as it rotates in the XY plane
-                -- 4. UpVector (top of head): points dynamically LEFT/RIGHT as it rotates in the XY plane
-
-                -- LookVector (куда смотрит лицо) - фиксирован на ось "стены" (например, +Z)
                 local fixedLookVector = rotationAxis 
                 
-                -- Вычисляем RightVector и UpVector, которые вращаются в плоскости XY
-                -- Угол currentRotationAngle определяет положение лопасти на круге.
-                -- X-компонента RightVector, Y-компонента UpVector.
                 local rightX = math.cos(math.rad(currentRotationAngle + 90)) -- Сдвиг на 90, чтобы он был "боком"
                 local rightY = math.sin(math.rad(currentRotationAngle + 90))
                 local rightVector = Vector3.new(rightX, rightY, 0).Unit * rotationDirection -- правый бок "вниз" по кругу
@@ -602,33 +555,8 @@ spinnerButton.MouseButton1Click:Connect(function()
                 local upY = math.sin(math.rad(currentRotationAngle))
                 local upVector = Vector3.new(upX, upY, 0).Unit * rotationDirection -- голова "вверх" по кругу
                 
-                -- Если rightVector направлен от центра, а upVector - по касательной,
-                -- то lookVector будет перпендикулярен им обоим.
-                -- Но нам нужен фиксированный lookVector.
-                
-                -- Использование CFrame.Angles для вращения вокруг фиксированной оси:
-                -- CFrame.new(initialHRPPosition) * CFrame.Angles(0, 0, math.rad(currentRotationAngle)) * CFrame.Angles(0, math.rad(90), 0)
-                -- 1. Переместить HRP в центр.
-                -- 2. Повернуть вокруг Z-оси (чтобы голова была вверх/вниз).
-                -- 3. Повернуть вокруг Y-оси (чтобы лицо смотрело на стену).
-                
-                -- Вращение вентилятора вокруг своей оси Z (если смотрит по Z)
                 local fanRotation = CFrame.Angles(0, 0, math.rad(currentRotationAngle * rotationDirection))
                 
-                -- Начальная ориентация "лопасти": лицо смотрит на стену (+Z), бок к полу (-Y)
-                -- Для этого: повернуть вокруг X на 90 градусов (чтобы лечь на спину), 
-                -- затем повернуть вокруг Y на 90 градусов (чтобы лицо смотрело на стену).
-                -- Это CFrame.Angles(math.rad(-90), 0, 0) * CFrame.Angles(0, math.rad(90), 0)
-                
-                -- Комбинируем:
-                -- 1. Позиция (фиксирована)
-                -- 2. Общее вращение вентилятора
-                -- 3. Локальная ориентация лопасти (чтобы лечь на бок и смотреть на стену)
-                
-                -- CFrame.Angles(roll, pitch, yaw)
-                -- Roll (X): -90 (чтобы лечь на спину)
-                -- Yaw (Y): 90 (чтобы повернуться лицом вбок, т.е. на стену)
-                -- Pitch (Z): 0
                 local bladeTiltAndDirection = CFrame.Angles(math.rad(-90), math.rad(90), 0) 
                 
                 local finalCFrame = CFrame.new(initialHRPPosition) * fanRotation * bladeTiltAndDirection
